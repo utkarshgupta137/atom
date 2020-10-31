@@ -1,3 +1,4 @@
+const { CompositeDisposable } = require('atom');
 const SelectListView = require('atom-select-list');
 const { repositoryForPath } = require('./helpers');
 
@@ -42,6 +43,19 @@ module.exports = class DiffListView {
       item: this.selectListView,
       visible: false
     });
+    this.subscriptions = new CompositeDisposable();
+    this.subscriptions.add(
+      atom.config.onDidChange('git-diff.ignoreEolWhitespace', () =>
+        this.updateConfigWhitespace()
+      ),
+      atom.config.onDidChange('git-diff.ignoreWhitespaceChange', () =>
+        this.updateConfigWhitespace()
+      ),
+      atom.config.onDidChange('git-diff.ignoreWhitespace', () =>
+        this.updateConfigWhitespace()
+      ),
+    );
+    this.updateConfigWhitespace();
   }
 
   attach() {
@@ -62,6 +76,7 @@ module.exports = class DiffListView {
   destroy() {
     this.cancel();
     this.panel.destroy();
+    this.subscriptions.dispose();
     return this.selectListView.destroy();
   }
 
@@ -73,7 +88,7 @@ module.exports = class DiffListView {
       this.editor = editor;
       const repository = repositoryForPath(this.editor.getPath());
       let diffs = repository
-        ? repository.getLineDiffs(this.editor.getPath(), this.editor.getText())
+        ? repository.getLineDiffs(this.editor.getPath(), this.editor.getText(), this.options)
         : [];
       if (!diffs) diffs = [];
       for (let diff of diffs) {
@@ -84,6 +99,18 @@ module.exports = class DiffListView {
 
       await this.selectListView.update({ items: diffs });
       this.attach();
+    }
+  }
+
+  updateConfigWhitespace() {
+    if (atom.config.get('git-diff.ignoreWhitespace')) {
+      this.options = {ignoreWhitespace: true};
+    } else if (atom.config.get('git-diff.ignoreWhitespaceChange')) {
+      this.options = {ignoreWhitespaceChange: true};
+    } else if (atom.config.get('git-diff.ignoreEolWhitespace')) {
+      this.options = {ignoreEolWhitespace: true};
+    } else {
+      this.options = {ignoreEolWhitespace: process.platform === 'win32'};
     }
   }
 };

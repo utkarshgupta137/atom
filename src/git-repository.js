@@ -454,16 +454,23 @@ module.exports = class GitRepository {
   //
   // * `path` The {String} path relative to the repository.
   // * `text` The {String} to compare against the `HEAD` contents
+  // * `options` An optional {Object} with support for the following keys:
+  //   * `ignoreEolWhitespace` A {Boolean}, `true` to ignore changes in whitespace at EOL.
+  //   * `ignoreWhitespaceChange` A {Boolean}, `true` to ignore changes in amount of whitespace.
+  //     This ignores whitespace at line end, and considers all other sequences of
+  //     one or more whitespace characters to be equivalent.
+  //   * `ignoreWhitespace` A {Boolean}, `true` to ignore whitespace when comparing lines.
+  //     This ignores differences even if one line has whitespace where the other line has none.
+  //   Default: { ignoreEolWhitespace: process.platform === 'win32' }
   //
   // Returns an {Array} of hunk {Object}s with the following keys:
   //   * `oldStart` The line {Number} of the old hunk.
   //   * `newStart` The line {Number} of the new hunk.
   //   * `oldLines` The {Number} of lines in the old hunk.
   //   * `newLines` The {Number} of lines in the new hunk
-  getLineDiffs(path, text) {
+  getLineDiffs(path, text, options = { ignoreEolWhitespace: process.platform === 'win32' }) {
     // Ignore eol of line differences on windows so that files checked in as
     // LF don't report every line modified when the text contains CRLF endings.
-    const options = { ignoreEolWhitespace: process.platform === 'win32' };
     const repo = this.getRepo(path);
     return repo.getLineDiffs(repo.relativize(path), text, options);
   }

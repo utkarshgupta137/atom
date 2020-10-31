@@ -33,6 +33,15 @@ module.exports = class GitDiffView {
       atom.config.onDidChange('editor.showLineNumbers', () =>
         this.updateIconDecoration()
       ),
+      atom.config.onDidChange('git-diff.ignoreEolWhitespace', () =>
+        this.updateConfigWhitespace()
+      ),
+      atom.config.onDidChange('git-diff.ignoreWhitespaceChange', () =>
+        this.updateConfigWhitespace()
+      ),
+      atom.config.onDidChange('git-diff.ignoreWhitespace', () =>
+        this.updateConfigWhitespace()
+      ),
       editorElement.onDidAttach(() => this.updateIconDecoration()),
       this.editor.onDidDestroy(() => {
         this.cancelUpdate();
@@ -43,6 +52,7 @@ module.exports = class GitDiffView {
 
     this.updateIconDecoration();
     this.scheduleUpdate();
+    this.updateConfigWhitespace();
   }
 
   moveToNextDiff() {
@@ -155,7 +165,7 @@ module.exports = class GitDiffView {
     ) {
       this.diffs =
         this.repository &&
-        this.repository.getLineDiffs(path, this.editor.getText());
+        this.repository.getLineDiffs(path, this.editor.getText(), this.options);
       if (this.diffs) this.addDecorations(this.diffs);
     }
   }
@@ -189,5 +199,17 @@ module.exports = class GitDiffView {
     });
     this.editor.decorateMarker(marker, { type: 'line-number', class: klass });
     this.markers.push(marker);
+  }
+
+  updateConfigWhitespace() {
+    if (atom.config.get('git-diff.ignoreWhitespace')) {
+      this.options = {ignoreWhitespace: true};
+    } else if (atom.config.get('git-diff.ignoreWhitespaceChange')) {
+      this.options = {ignoreWhitespaceChange: true};
+    } else if (atom.config.get('git-diff.ignoreEolWhitespace')) {
+      this.options = {ignoreEolWhitespace: true};
+    } else {
+      this.options = {ignoreEolWhitespace: process.platform === 'win32'};
+    }
   }
 };
